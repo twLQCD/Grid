@@ -112,6 +112,7 @@ public:
 struct LanczosParameters: Serializable {
   GRID_SERIALIZABLE_CLASS_MEMBERS(LanczosParameters,
 		  		RealD, mass , 
+				RealD, resid,
 	  			RealD, ChebyLow,
 	  			RealD, ChebyHigh,
 	  			Integer, ChebyOrder)
@@ -200,9 +201,9 @@ int main(int argc, char** argv) {
   }
 */
 
-  int Nstop = 10;
-  int Nk = 20;
-  int Np = 80;
+  int Nstop = 5;
+  int Nk = 10;
+  int Np = 90;
   int Nm = Nk + Np;
   int MaxIt = 10000;
   RealD resid = 1.0e-5;
@@ -227,6 +228,7 @@ int main(int argc, char** argv) {
   }
 
   mass=LanParams.mass;
+  resid=LanParams.resid;
 
 
 while ( mass > - 5.0){
@@ -235,16 +237,16 @@ while ( mass > - 5.0){
   //SchurDiagTwoOperator<FermionOp,FermionField> HermOp(WilsonOperator);
 //  Gamma5HermitianLinearOperator <FermionOp,LatticeFermion> HermOp2(WilsonOperator); /// <-----
 
-  std::vector<double> Coeffs{0, 1.};
+  std::vector<double> Coeffs{0, 0, 1.};
   Polynomial<FermionField> PolyX(Coeffs);
-//  Chebyshev<FermionField> Cheby(LanParams.ChebyLow,LanParams.ChebyHigh,LanParams.ChebyOrder);
+  Chebyshev<FermionField> Cheby(LanParams.ChebyLow,LanParams.ChebyHigh,LanParams.ChebyOrder);
 
-//  FunctionHermOp<FermionField> OpCheby(Cheby,HermOp);
+       FunctionHermOp<FermionField> OpCheby(Cheby,HermOp);
 //     InvHermOp<FermionField> Op(WilsonOperator,HermOp);
      PlainHermOp<FermionField> Op     (HermOp);
 //     PlainHermOp<FermionField> Op2     (HermOp2);
 
-  ImplicitlyRestartedLanczos<FermionField> IRL(Op, Op, Nstop, Nk, Nm, resid, MaxIt);
+  ImplicitlyRestartedLanczos<FermionField> IRL(OpCheby, Op, Nstop, Nk, Nm, resid, MaxIt);
 
   std::vector<RealD> eval(Nm);
   FermionField src(FGrid);
