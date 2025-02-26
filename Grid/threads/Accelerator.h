@@ -674,7 +674,7 @@ inline void acceleratorCopyDeviceToDevice(void *from,void *to,size_t bytes)
   acceleratorCopySynchronise();
 }
 
-template<class T> void acceleratorPut(T& dev,T&host)
+template<class T> void acceleratorPut(T& dev,const T&host)
 {
   acceleratorCopyToDevice(&host,&dev,sizeof(T));
 }
