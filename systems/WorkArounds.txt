@@ -34,6 +34,14 @@ export FI_MR_CACHE_MONITOR=disabled
 or
 export FI_MR_CACHE_MONITOR=kdreg2
 
+--------------------------------------------------------------------
+Perlmutter
+--------------------------------------------------------------------
+
+export MPICH_RDMA_ENABLED_CUDA=1
+export MPICH_GPU_IPC_ENABLED=1
+export MPICH_GPU_EAGER_REGISTER_HOST_MEM=0
+export MPICH_GPU_NO_ASYNC_MEMCPY=0
 
 --------------------------------------------------------------------
 Frontier/LumiG
