@@ -6,6 +6,7 @@ A repository of work-arounds.
 Contents:
 1. Interconnect + MPI
 2. Compilation
+3. Profiling
 
 ************************
 * 1. INTERCONNECT + MPI
