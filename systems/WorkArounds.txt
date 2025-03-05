@@ -7,8 +7,9 @@ Contents:
 1. Interconnect + MPI
 2. Compilation
 
-
+************************
 * 1. INTERCONNECT + MPI
+************************
 
 --------------------------------------------------------------------
 MPI2-IO correctness: force OpenMPI to use the MPICH romio implementation for parallel I/O 
@@ -33,6 +34,31 @@ export FI_MR_CACHE_MONITOR=disabled
 or
 export FI_MR_CACHE_MONITOR=kdreg2
 
+
+--------------------------------------------------------------------
+Frontier/LumiG
+--------------------------------------------------------------------
+
+Hiding ROCR_VISIBLE_DEVICES triggers SDMA engines to be used for GPU-GPU
+
+cat << EOF > select_gpu
+#!/bin/bash
+export MPICH_GPU_SUPPORT_ENABLED=1
+export MPICH_SMP_SINGLE_COPY_MODE=XPMEM
+export GPU_MAP=(0 1 2 3 7 6 5 4)
+export NUMA_MAP=(3 3 1 1 2 2 0 0)
+export GPU=\${GPU_MAP[\$SLURM_LOCALID]}
+export NUMA=\${NUMA_MAP[\$SLURM_LOCALID]}
+export HIP_VISIBLE_DEVICES=\$GPU
+unset ROCR_VISIBLE_DEVICES
+echo RANK \$SLURM_LOCALID using GPU \$GPU    
+exec numactl -m \$NUMA -N \$NUMA \$*
+EOF
+chmod +x ./select_gpu
+
+srun ./select_gpu BINARY
+
+
 --------------------------------------------------------------------
 Mellanox performance with A100 GPU 
 --------------------------------------------------------------------
@@ -54,9 +80,12 @@ MPICH/Aurora/PVC correctness and performance (Peter Boyle)
 https://github.com/pmodels/mpich/issues/7302
 
 --enable-cuda-aware-mpi=no  
-(Grid's internal D-H-H-D pipeline mode, avoid device memory in MPI)
+--enable-unified=no
 
-Ideally use MPICH with fix:
+Grid's internal D-H-H-D pipeline mode, avoid device memory in MPI
+Do not use SVM
+
+Ideally use MPICH with fix to issue 7302:
 
 https://github.com/pmodels/mpich/pull/7312
 
@@ -67,8 +96,24 @@ Alternatives:
 export MPIR_CVAR_NOLOCAL=1
 export MPIR_CVAR_CH4_IPC_GPU_P2P_THRESHOLD=1000000000
 
+--------------------------------------------------------------------
+MPICH/Aurora/PVC correctness and performance (James Osborne)
+--------------------------------------------------------------------
 
+Broken:
+export MPIR_CVAR_CH4_OFI_ENABLE_GPU_PIPELINE=1
+
+This gives good peformance without requiring 
+--enable-cuda-aware-mpi=no  
+
+But is an open issue reported by James Osborne
+https://github.com/pmodels/mpich/issues/7139
+
+Possibly resolved but unclear if in the installed software yet.
+
+************************
 * 2. COMPILATION
+************************
 
 --------------------------------------------------------------------
 G++ compiler breakage / graveyard
@@ -95,15 +140,23 @@ Working (-) Broken (X):
 https://github.com/paboyle/Grid/issues/100
 
 --------------------------------------------------------------------
-AMD GPU nodes : multiple ROCM versions broken; use 5.3.0
+AMD GPU nodes :
 --------------------------------------------------------------------
+
+multiple ROCM versions broken; use 5.3.0
+manifests itself as wrong results in fp32 
+
 https://github.com/paboyle/Grid/issues/464
 
 --------------------------------------------------------------------
 Aurora/PVC
+--------------------------------------------------------------------
 
 SYCL ahead of time compilation (fixes rare runtime JIT errors and faster runtime, PB)
 SYCL slow link and relocatable code issues (Christoph Lehner)
---------------------------------------------------------------------
+Opt large register file required for good performance in fp64
+
+
+export SYCL_PROGRAM_COMPILE_OPTIONS="-ze-opt-large-register-file"
 export LDFLAGS="-fiopenmp -fsycl -fsycl-device-code-split=per_kernel -fsycl-targets=spir64_gen -Xs -device -Xs pvc -fsycl-device-lib=all -lze_loader -L${MKLROOT}/lib -qmkl=parallel  -fsycl  -lsycl -fPIC -fsycl-max-parallel-link-jobs=16 -fno-sycl-rdc" 
 export CXXFLAGS="-O3 -fiopenmp -fsycl-unnamed-lambda -fsycl -Wno-tautological-compare -qmkl=parallel  -fsycl -fno-exceptions -fPIC"
