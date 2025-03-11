@@ -759,9 +759,6 @@ void CartesianCommunicator::StencilSendToRecvFromComplete(std::vector<CommsReque
 
   int nreq=MpiRequests.size();
 
-  std::cout << GridLogMessage << " StencilSendToRevFromComplete "<<nreq<<" Mpi Requests"<<std::endl;
-
-
   if (nreq>0) {
     status.resize(MpiRequests.size());
     int ierr = MPI_Waitall(MpiRequests.size(),&MpiRequests[0],&status[0]); // Sends are guaranteed in order. No harm in not completing.
