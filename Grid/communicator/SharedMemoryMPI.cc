@@ -959,6 +959,7 @@ void SharedMemory::SetCommunicator(Grid_MPI_Comm comm)
     MPI_Allreduce(MPI_IN_PLACE,&wsr,1,MPI_UINT32_T,MPI_SUM,ShmComm);
 
     ShmCommBufs[r] = GlobalSharedMemory::WorldShmCommBufs[wsr];
+    //    std::cerr << " SetCommunicator rank "<<r<<" comm "<<ShmCommBufs[r] <<std::endl;
   }
   ShmBufferFreeAll();
 
@@ -1011,29 +1012,20 @@ void SharedMemory::SharedMemoryTest(void)
        check[0]=GlobalSharedMemory::WorldNode;
        check[1]=r;
        check[2]=magic;
-       //       std::cerr << " ShmRank "<<ShmRank<<" storing "<<GlobalSharedMemory::WorldNode<<","<<r<<","<<std::hex<<magic<<" to buf "<<ShmCommBufs[r]
-       //		 <<std::dec<<std::endl;
-       acceleratorPut(ShmCommBufs[r][0],check[0]);
-       acceleratorPut(ShmCommBufs[r][1],check[1]);
-       acceleratorPut(ShmCommBufs[r][2],check[2]);
-       //       GlobalSharedMemory::SharedMemoryCopy( ShmCommBufs[r], check, 3*sizeof(uint64_t));
+       acceleratorCopyToDevice(check,ShmCommBufs[r],3*sizeof(uint64_t));
     }
   }
   ShmBarrier();
   for(uint64_t r=0;r<ShmSize;r++){
-    ShmBarrier();
-    //    GlobalSharedMemory::SharedMemoryCopy(check,ShmCommBufs[r], 3*sizeof(uint64_t));
+    acceleratorCopyFromDevice(ShmCommBufs[r],check,3*sizeof(uint64_t));
+    //      accelerator_barrier();
     //    std::cerr << " ShmRank "<<ShmRank<<" read "<<check[0]<<","<<check[1]<<","<<std::hex<<check[2]<<" from buf "<<ShmCommBufs[r]
     //	      <<std::dec<<std::endl;
-    check[0] = acceleratorGet(ShmCommBufs[r][0]);
-    check[1] = acceleratorGet(ShmCommBufs[r][1]);
-    check[2] = acceleratorGet(ShmCommBufs[r][2]);
-    ShmBarrier();
     assert(check[0]==GlobalSharedMemory::WorldNode);
     assert(check[1]==r);
     assert(check[2]==magic);
-    ShmBarrier();
   }
+  ShmBarrier();
 }
 
 void *SharedMemory::ShmBuffer(int rank)
