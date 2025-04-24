@@ -46,7 +46,30 @@ Prerequisites:
    
    -framework Foundation -framework AudioToolbox -framework CoreAudio -liconv -lm -framework AVFoundation -framework CoreVideo -framework CoreMedia -framework CoreGraphics -framework AudioToolbox -framework OpenGL -framework OpenGL -framework VideoToolbox -framework CoreImage -framework AppKit -framework CoreFoundation -framework CoreServices -lz -lbz2 -Wl,-framework,CoreFoundation -Wl,-framework,Security -L/usr/local/lib -lavdevice -lavfilter -lavformat -lavcodec -lswresample -lswscale -lavutil
 
+   Set paths for each of 
+ FFMPEG_DIR                       /usr/local                                                                                                                                                                                              
+ FFMPEG_avcodec_INCLUDE_DIR       /usr/local/include                                                                                                                                                                                      
+ FFMPEG_avcodec_LIBRARY           /usr/local/lib/libavcodec.a                                                                                                                                                                             
+ FFMPEG_avdevice_INCLUDE_DIR      /usr/local/include                                                                                                                                                                                      
+ FFMPEG_avdevice_LIBRARY          /usr/local/lib/libavdevice.a                                                                                                                                                                            
+ FFMPEG_avfilter_INCLUDE_DIR      /usr/local/include                                                                                                                                                                                      
+ FFMPEG_avfilter_LIBRARY          /usr/local/lib/libavfilter.a                                                                                                                                                                            
+ FFMPEG_avformat_INCLUDE_DIR      /usr/local/include                                                                                                                                                                                      
+ FFMPEG_avformat_LIBRARY          /usr/local/lib/libavformat.a                                                                                                                                                                            
+ FFMPEG_avresample_INCLUDE_DIR    /usr/local/include                                                                                                                                                                                      
+ FFMPEG_avresample_LIBRARY        /usr/local/lib/libavresample.a                                                                                                                                                                          
+ FFMPEG_avutil_INCLUDE_DIR        /usr/local/include                                                                                                                                                                                      
+ FFMPEG_avutil_LIBRARY            /usr/local/lib/libavutil.a                                                                                                                                                                              
+ FFMPEG_swresample_INCLUDE_DIR    /usr/local/include                                                                                                                                                                                      
+ FFMPEG_swresample_LIBRARY        /usr/local/lib/libswresample.a                                                                                                                                                                          
+ FFMPEG_swscale_INCLUDE_DIR       /usr/local/include                                                                                                                                                                                      
+ FFMPEG_swscale_LIBRARY           /usr/local/lib/libswscale.a      
+
+ VTK_MODULE_ENABLE_VTK_IOFFMPEG   YES                                                                                                                                                                                                     
+
+
    VTK really should make it easier to pick up the flags required for FFMPEG linkage, especially as they are very quirky on MacOS.
+
 
 ========================================
 Grid:
