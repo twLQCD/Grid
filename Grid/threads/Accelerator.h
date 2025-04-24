@@ -611,6 +611,8 @@ inline void acceleratorMem(void)
 
 accelerator_inline int acceleratorSIMTlane(int Nsimd) { return 0; } // CUDA specific
 
+inline void acceleratorCopyToDevice(void *from,void *to,size_t bytes)  { thread_bcopy(from,to,bytes); }
+inline void acceleratorCopyFromDevice(void *from,void *to,size_t bytes)  { thread_bcopy(from,to,bytes); }
 inline acceleratorEvent_t acceleratorCopyToDeviceAsynch(void *from,void *to,size_t bytes)        { acceleratorCopyToDevice(from,to,bytes); return 0; }
 inline acceleratorEvent_t acceleratorCopyFromDeviceAsynch(void *from,void *to,size_t bytes)      { acceleratorCopyFromDevice(from,to,bytes); return 0; }
 inline void acceleratorEventWait(acceleratorEvent_t ev){}
