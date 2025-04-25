@@ -242,33 +242,19 @@ inline void *acceleratorAllocDevice(size_t bytes)
   return ptr;
 };
 
-typedef int acceleratorEvent_t;
-
 inline void acceleratorFreeShared(void *ptr){ cudaFree(ptr);};
 inline void acceleratorFreeDevice(void *ptr){ cudaFree(ptr);};
 inline void acceleratorFreeHost(void *ptr){ cudaFree(ptr);};
 inline void acceleratorCopyToDevice(const void *from,void *to,size_t bytes)  { cudaMemcpy(to,from,bytes, cudaMemcpyHostToDevice);}
 inline void acceleratorCopyFromDevice(const void *from,void *to,size_t bytes){ cudaMemcpy(to,from,bytes, cudaMemcpyDeviceToHost);}
+inline void acceleratorCopyToDeviceAsync(const void *from, void *to, size_t bytes, cudaStream_t stream = copyStream) { cudaMemcpyAsync(to,from,bytes, cudaMemcpyHostToDevice, stream);}
+inline void acceleratorCopyFromDeviceAsync(const void *from, void *to, size_t bytes, cudaStream_t stream = copyStream) { cudaMemcpyAsync(to,from,bytes, cudaMemcpyDeviceToHost, stream);}
 inline void acceleratorMemSet(void *base,int value,size_t bytes) { cudaMemset(base,value,bytes);}
-inline acceleratorEvent_t acceleratorCopyToDeviceAsynch(void *from, void *to, size_t bytes, cudaStream_t stream = copyStream) {
-  acceleratorCopyToDevice(to,from,bytes, cudaMemcpyHostToDevice);
-  return 0;
-}
-inline acceleratorEvent_t acceleratorCopyFromDeviceAsynch(void *from, void *to, size_t bytes, cudaStream_t stream = copyStream) {
-  acceleratorCopyFromDevice(from,to,bytes);
-  return 0;
-}
-inline acceleratorEvent_t acceleratorCopyDeviceToDeviceAsynch(void *from,void *to,size_t bytes) // Asynch
+inline void acceleratorCopyDeviceToDeviceAsynch(const void *from,void *to,size_t bytes) // Asynch
 {
   cudaMemcpyAsync(to,from,bytes, cudaMemcpyDeviceToDevice,copyStream);
-  return 0;
 }
 inline void acceleratorCopySynchronise(void) { cudaStreamSynchronize(copyStream); };
-inline void acceleratorEventWait(acceleratorEvent_t ev)
-{
-  //auto discard=cudaStreamSynchronize(ev);
-}
-inline int acceleratorEventIsComplete(acceleratorEvent_t ev){ acceleratorEventWait(ev) ; return 1;}
 
 
 inline int  acceleratorIsCommunicable(void *ptr)
@@ -373,9 +359,9 @@ inline int acceleratorEventIsComplete(acceleratorEvent_t ev)
   return (ev.get_info<sycl::info::event::command_execution_status>() == sycl::info::event_command_status::complete);
 }
 
-inline acceleratorEvent_t acceleratorCopyDeviceToDeviceAsynch(void *from,void *to,size_t bytes)  { return theCopyAccelerator->memcpy(to,from,bytes);}
-inline acceleratorEvent_t acceleratorCopyToDeviceAsynch(void *from,void *to,size_t bytes)        { return theCopyAccelerator->memcpy(to,from,bytes); }
-inline acceleratorEvent_t acceleratorCopyFromDeviceAsynch(void *from,void *to,size_t bytes)      { return theCopyAccelerator->memcpy(to,from,bytes); }
+inline acceleratorEvent_t acceleratorCopyDeviceToDeviceAsynch(const void *from,void *to,size_t bytes)  { return theCopyAccelerator->memcpy(to,from,bytes);}
+inline acceleratorEvent_t acceleratorCopyToDeviceAsynch(const void *from,void *to,size_t bytes)        { return theCopyAccelerator->memcpy(to,from,bytes); }
+inline acceleratorEvent_t acceleratorCopyFromDeviceAsynch(const void *from,void *to,size_t bytes)      { return theCopyAccelerator->memcpy(to,from,bytes); }
 
 inline void acceleratorCopyToDevice(const void *from,void *to,size_t bytes)  { theCopyAccelerator->memcpy(to,from,bytes); theCopyAccelerator->wait();}
 inline void acceleratorCopyFromDevice(const void *from,void *to,size_t bytes){ theCopyAccelerator->memcpy(to,from,bytes); theCopyAccelerator->wait();}
@@ -492,7 +478,7 @@ void LambdaApply(uint64_t numx, uint64_t numy, uint64_t numz, lambda Lambda)
 inline void *acceleratorAllocHost(size_t bytes)
 {
   void *ptr=NULL;
-  auto err = hipHostMalloc((void **)&ptr,bytes);
+  auto err = hipMallocHost((void **)&ptr,bytes);
   if( err != hipSuccess ) {
     ptr = (void *) NULL;
     fprintf(stderr," hipMallocManaged failed for %ld %s \n",bytes,hipGetErrorString(err)); fflush(stderr);
@@ -530,29 +516,17 @@ inline void acceleratorCopyFromDevice(const void *from,void *to,size_t bytes){ a
 
 inline void acceleratorMemSet(void *base,int value,size_t bytes) { auto discard=hipMemset(base,value,bytes);}
 
-typedef int acceleratorEvent_t;
-
-inline acceleratorEvent_t acceleratorCopyDeviceToDeviceAsynch(void *from,void *to,size_t bytes) // Asynch
+inline void acceleratorCopyDeviceToDeviceAsynch(const void *from,void *to,size_t bytes) // Asynch
 {
   auto discard=hipMemcpyDtoDAsync(to,from,bytes, copyStream);
-  return 0;
 }
-inline acceleratorEvent_t acceleratorCopyToDeviceAsynch(void *from, void *to, size_t bytes, hipStream_t stream = copyStream) {
-  acceleratorCopyToDevice(from,to,bytes);
-  return 0;
+inline void acceleratorCopyToDeviceAsync(const void *from, void *to, size_t bytes, hipStream_t stream = copyStream) {
+  auto r = hipMemcpyAsync(to,from,bytes, hipMemcpyHostToDevice, stream);
 }
-inline acceleratorEvent_t acceleratorCopyFromDeviceAsynch(void *from, void *to, size_t bytes, hipStream_t stream = copyStream) {
-  acceleratorCopyFromDevice(from,to,bytes);
-  return 0;
+inline void acceleratorCopyFromDeviceAsync(const void *from, void *to, size_t bytes, hipStream_t stream = copyStream) {
+  auto r = hipMemcpyAsync(to,from,bytes, hipMemcpyDeviceToHost, stream);
 }
 inline void acceleratorCopySynchronise(void) { auto discard=hipStreamSynchronize(copyStream); };
-
-inline void acceleratorEventWait(acceleratorEvent_t ev)
-{
-  //  auto discard=hipStreamSynchronize(ev);
-}
-inline int acceleratorEventIsComplete(acceleratorEvent_t ev){ acceleratorEventWait(ev) ; return 1;}
-
 
 #endif
 
@@ -590,8 +564,6 @@ inline void acceleratorPin(void *ptr,unsigned long bytes)
 
 #undef GRID_SIMT
 
-typedef int acceleratorEvent_t;
-
 inline void acceleratorMem(void)
 {
   /*
@@ -611,12 +583,9 @@ inline void acceleratorMem(void)
 
 accelerator_inline int acceleratorSIMTlane(int Nsimd) { return 0; } // CUDA specific
 
-inline acceleratorEvent_t acceleratorCopyToDeviceAsynch(void *from,void *to,size_t bytes)        { acceleratorCopyToDevice(from,to,bytes); return 0; }
-inline acceleratorEvent_t acceleratorCopyFromDeviceAsynch(void *from,void *to,size_t bytes)      { acceleratorCopyFromDevice(from,to,bytes); return 0; }
-inline void acceleratorEventWait(acceleratorEvent_t ev){}
-inline int acceleratorEventIsComplete(acceleratorEvent_t ev){ acceleratorEventWait(ev); return 1;}
-inline acceleratorEvent_t acceleratorCopyDeviceToDeviceAsynch(void *from,void *to,size_t bytes)  { thread_bcopy(from,to,bytes); return 0;}
-
+inline void acceleratorCopyToDevice(const void *from,void *to,size_t bytes)  { thread_bcopy(from,to,bytes); }
+inline void acceleratorCopyFromDevice(const void *from,void *to,size_t bytes){ thread_bcopy(from,to,bytes);}
+inline void acceleratorCopyDeviceToDeviceAsynch(const void *from,void *to,size_t bytes)  { thread_bcopy(from,to,bytes);}
 inline void acceleratorCopySynchronise(void) {};
 
 inline int  acceleratorIsCommunicable(void *ptr){ return 1; }
@@ -699,7 +668,7 @@ accelerator_inline void acceleratorFence(void)
   return;
 }
 
-inline void acceleratorCopyDeviceToDevice(void *from,void *to,size_t bytes)
+inline void acceleratorCopyDeviceToDevice(const void *from,void *to,size_t bytes)
 {
   acceleratorCopyDeviceToDeviceAsynch(from,to,bytes);
   acceleratorCopySynchronise();

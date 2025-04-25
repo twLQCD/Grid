@@ -547,7 +547,7 @@ void GlobalSharedMemory::SharedMemoryAllocate(uint64_t bytes, int flags)
   HostCommBuf= acceleratorAllocHost(bytes);
 #else 
   HostCommBuf= malloc(bytes); /// CHANGE THIS TO malloc_host
-#if 0
+#ifdef HAVE_NUMAIF_H
   #warning "Moving host buffers to specific NUMA domain"
   int numa;
   char *numa_name=(char *)getenv("MPI_BUF_NUMA");
@@ -916,14 +916,14 @@ void GlobalSharedMemory::SharedMemoryZero(void *dest,size_t bytes)
   bzero(dest,bytes);
 #endif
 }
-//void GlobalSharedMemory::SharedMemoryCopy(void *dest,void *src,size_t bytes)
-//{
-//#if defined(GRID_CUDA) || defined(GRID_HIP) || defined(GRID_SYCL)
-//  acceleratorCopyToDevice(src,dest,bytes);
-//#else   
-//  bcopy(src,dest,bytes);
-//#endif
-//}
+void GlobalSharedMemory::SharedMemoryCopy(void *dest,void *src,size_t bytes)
+{
+#if defined(GRID_CUDA) || defined(GRID_HIP) || defined(GRID_SYCL)
+  acceleratorCopyToDevice(src,dest,bytes);
+#else   
+  bcopy(src,dest,bytes);
+#endif
+}
 ////////////////////////////////////////////////////////
 // Global shared functionality finished
 // Now move to per communicator functionality
@@ -959,7 +959,6 @@ void SharedMemory::SetCommunicator(Grid_MPI_Comm comm)
     MPI_Allreduce(MPI_IN_PLACE,&wsr,1,MPI_UINT32_T,MPI_SUM,ShmComm);
 
     ShmCommBufs[r] = GlobalSharedMemory::WorldShmCommBufs[wsr];
-    //    std::cerr << " SetCommunicator rank "<<r<<" comm "<<ShmCommBufs[r] <<std::endl;
   }
   ShmBufferFreeAll();
 
@@ -990,7 +989,7 @@ void SharedMemory::SetCommunicator(Grid_MPI_Comm comm)
   }
 #endif
 
-  SharedMemoryTest();
+  //SharedMemoryTest();
 }
 //////////////////////////////////////////////////////////////////
 // On node barrier
@@ -1012,18 +1011,19 @@ void SharedMemory::SharedMemoryTest(void)
        check[0]=GlobalSharedMemory::WorldNode;
        check[1]=r;
        check[2]=magic;
-       acceleratorCopyToDevice(check,ShmCommBufs[r],3*sizeof(uint64_t));
+       GlobalSharedMemory::SharedMemoryCopy( ShmCommBufs[r], check, 3*sizeof(uint64_t));
     }
   }
   ShmBarrier();
   for(uint64_t r=0;r<ShmSize;r++){
-    acceleratorCopyFromDevice(ShmCommBufs[r],check,3*sizeof(uint64_t));
+    ShmBarrier();
+    GlobalSharedMemory::SharedMemoryCopy(check,ShmCommBufs[r], 3*sizeof(uint64_t));
+    ShmBarrier();
     assert(check[0]==GlobalSharedMemory::WorldNode);
     assert(check[1]==r);
     assert(check[2]==magic);
+    ShmBarrier();
   }
-  ShmBarrier();
-  std::cout << GridLogDebug << " SharedMemoryTest has passed "<<std::endl;
 }
 
 void *SharedMemory::ShmBuffer(int rank)
