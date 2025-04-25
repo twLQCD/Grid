@@ -52,7 +52,7 @@ int main (int argc, char ** argv)
   uint64_t lmax=48;
   int Nloop=100;
   int Nwarm=10;
-
+  std::vector<double> times(Nloop, 0.0);
 /*
   std::cout<<GridLogMessage << "===================================================================================================="<<std::endl;
   //std::cout<<GridLogMessage << "= Benchmarking fused AXPY bandwidth ; sizeof(Real) "<<sizeof(Real)<<std::endl;
